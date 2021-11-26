@@ -1,0 +1,92 @@
+version: "3.9"
+    
+services:
+  nginx:
+    build:
+      context: ./nginx
+    image: nginx:1.20.2
+    ports: 
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./html:/var/www/html
+    depends_on:
+      #- pma
+      - wp
+    networks:
+      - wp-net
+    container_name: nginx
+
+  php:
+    build:
+      context: ./php7.4
+    image: php:7.4
+
+  db:
+    build:
+      context: ./mysql8.0
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: DRhJPZAFeaQt
+      MYSQL_DATABASE: wp_db
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: rvdhvQnJxCI6
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - wp-net
+    container_name: db
+
+  pma:
+    build:
+      context: ./pma
+    image: phpmyadmin:5.1.1
+    restart: always
+    depends_on:
+     - db
+    environment:
+      PMA_ARBITRARY: 1
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: DRhJPZAFeaQt
+    networks:
+      - wp-net
+    container_name: pma
+
+  wp:
+    build:
+      context: ./wp
+    image: wp
+    restart: always
+    depends_on:
+      - db
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_PASSWORD: rvdhvQnJxCI6
+      WORDPRESS_DB_NAME: wp_db
+    volumes:
+      - wpdata:/var/www/html
+    networks:
+      - wp-net
+    container_name: wp
+
+
+networks:
+  wp-net:           
+ 
+volumes:
+  dbdata:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/db
+      o: bind
+  wpdata:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/html
+      o: bind
